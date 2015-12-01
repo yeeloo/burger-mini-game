@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+
+<style>
+body {width:800px; height:600px; margin:20px auto; position:relative;}
+canvas {width:800px; height:600px; border:1px solid #ccc;}
+#indication {width:10px; height:12px; position:absolute; top:55px; left:8px; display:block; background:#00D2FF;}
+</style>
+
+<body>
+<!--<div id="indication"></div>-->
+<div id="container"></div>
+<script src="jquery.js" type="text/javascript"></script> 
+<script src="TweenMax.min.js" type="text/javascript"></script>
+<script src="kineticjs.js" type="text/javascript"></script>
+ 
+<script>
+      var stage = new Kinetic.Stage({
+        container: 'container',
+        width: 800,
+        height: 600
+      });
+      var layer = new Kinetic.Layer();
+	  var layer2 = new Kinetic.Layer();
+	  var orderLayer = new Kinetic.Layer();
+	  var messageLayer = new Kinetic.Layer();
+      var timerLayer = new Kinetic.Layer();
+	  var gameOverLayer = new Kinetic.Layer();
+									// x, y, w, h, cx, cy, cw, ch
+	  var  spritePos = [	{_x:580, _y:80, _w:100, _h:110, _cx:0, _cy:0, _cw:100, _ch:110},
+									{_x:680, _y:80, _w:100, _h:110, _cx:95, _cy:0, _cw:100, _ch:110},
+									{_x:580, _y:200, _w:100, _h:110, _cx:190, _cy:0, _cw:100, _ch:110},
+									{_x:680, _y:200, _w:100, _h:110, _cx:285, _cy:0, _cw:100, _ch:110},
+									{_x:580, _y:320, _w:100, _h:110, _cx:380, _cy:0, _cw:100, _ch:110},
+									{_x:680, _y:320, _w:100, _h:110, _cx:475, _cy:0, _cw:100, _ch:110},
+									{_x:580, _y:440,_w:100, _h:110, _cx:570, _cy:0, _cw:100, _ch:110},
+									{_x:680, _y:440, _w:100, _h:110, _cx:665, _cy:0, _cw:100, _ch:110}
+								  ]; 
+	  
+	  var  ingrePos = [	{_x:150, _y:150, _w:366, _h:110, _cx:0, _cy:110, _cw:366, _ch:110},
+									{_x:150, _y:150, _w:366, _h:85, _cx:370, _cy:110, _cw:366, _ch:85},
+									{_x:150, _y:150, _w:366, _h:49, _cx:735, _cy:110, _cw:366, _ch:49},
+									{_x:150, _y:150, _w:366, _h:37, _cx:1100, _cy:110, _cw:366, _ch:37},
+									{_x:150, _y:150, _w:366, _h:37, _cx:0, _cy:220, _cw:366, _ch:37},
+									{_x:150, _y:150, _w:366, _h:24, _cx:370, _cy:220, _cw:366, _ch:24},
+									{_x:150, _y:150, _w:366, _h:30, _cx:735, _cy:220, _cw:366, _ch:30},
+									{_x:150, _y:150, _w:366, _h:30, _cx:1100, _cy:220, _cw:366, _ch:30}
+								  ]; 
+								  
+      var imageObj = new Image();
+	  var burgerHeight = 220;
+      var totalBurgerHeight = 0;
+	  var orderHeight = 0;
+	  var selectedIngre = [];
+	  var currentOrder = [];
+	  var points = 0;
+      var marginLeft = 150;
+      var timerCount = 60;
+        
+      var scaleFac = 1;
+	
+	function updateTimeSpan(){
+		 t = setTimeout(function(){
+			if(timerCount > 0){
+				timerCount -= 1;
+				writeMessage(timerLayer, 'TIME : ' + timerCount, 20, 40);
+				writeMessage(messageLayer, 'SCORE : ' + points , 20, 70);
+				
+				updateTimeSpan();
+			}else{
+				//alert('times up!');
+				gameOverText.setText('GAME OVER, YOUR SCORE IS ' + points);
+				gameOverLayer.show();
+				gameOverLayer.draw();
+				messageLayer.draw();
+				clearTimeout(t);
+			}
+			
+		},1000);
+	}
+    
+    function arraysEqual(arr1, arr2) {
+		if(arr1.length !== arr2.length)
+			return false;
+		for(var i = arr1.length; i--;) {
+			if(arr1[i] !== arr2[i])
+				return false;
+		}
+		return true;
+	}
+	  
+    function writeMessage(_layer, message, _x, _y) {
+        var context = _layer.getContext();
+        _layer.clear();
+        context.font = 'bold 18pt Arial';
+		context.fillStyle = '#00a3ff',
+        context.fillText(message, _x, _y);
+    }
+	  
+	  function checkOrder(){
+        selectedIngre.reverse();
+		if(arraysEqual(currentOrder, selectedIngre) == true){
+			points += 10;
+		}else{
+			points -= 10;
+		}		
+		burgerHeight = 220;
+        totalBurgerHeight = 0;
+        scaleFac = 1;
+        layer2.setScale(scaleFac,scaleFac);
+        layer2.setPosition(0, 0);
+          
+		selectedIngre = [];
+		orderHeight = 0;
+		orderLayer.removeChildren();
+		orderLayer.draw();
+		currentOrder = [];
+		
+		writeMessage(messageLayer, 'SCORE : ' + points, 20, 70);
+
+		layer2.removeChildren();
+		layer2.draw();
+		createOrder();
+	  }
+	  
+	  function createOrder(){
+		
+		var totalIngredients = Math.floor(Math.random()*(3-1) + 2);
+		
+		currentOrder.push(0);
+		for(var j=0; j<totalIngredients;j++){
+			var randomNum = Math.floor(Math.random()*(8-2) + 2);
+			currentOrder.push(randomNum);
+		}
+		currentOrder.push(1);
+		//alert(currentOrder);
+		
+		for(var n=0; n<currentOrder.length;n++){
+			var ran = currentOrder[n];
+			
+			
+			var ing = new Kinetic.Image({
+				x: 2900,
+				y: 50 + orderHeight,
+				width:366,
+				height:ingrePos[ran]._h,
+				image: imageObj,
+				crop: {
+					x: ingrePos[ran]._cx,
+					y: ingrePos[ran]._cy,
+					width: 366,
+					height: ingrePos[ran]._ch
+				}
+			});
+					
+			orderHeight += ingrePos[ran]._h;				
+			orderLayer.add(ing);
+		}
+		orderLayer.draw();
+		orderLayer.setScale(0.2,0.2);
+		//alert(currentOrder);
+	}
+	
+	var layerBg = new Kinetic.Rect({
+        x: 0,
+        y: 0,
+        width: 800,
+        height: 600,
+        fill: '#00a3ff'
+     });
+	
+	var gameOverText = new Kinetic.Text({
+        x: 160,
+        y: 280,
+        text: 'GAME OVER, YOUR SCORE IS ' + points,
+        fontSize: 28,
+		fontStyle: 'bold',
+        fontFamily: 'Arial',
+        fill: '#FFFFFF'
+      });
+    
+	var orderText = new Kinetic.Text({
+        x: 520,
+        y: 15,
+        text: 'ORDER:',
+        fontSize: 14,
+		fontStyle: 'bold',
+        fontFamily: 'Arial',
+        fill: '#00a3ff'
+      });
+	  
+	  var scoreText = new Kinetic.Text({
+        x: 210,
+        y: 540,
+        text: 'SCORE:',
+        fontSize: 20,
+		fontStyle: 'bold',
+        fontFamily: 'Arial',
+        fill: '#00a3ff'
+      });
+	  
+	  //layer.add(scoreText);
+     // layer.add(timerText);
+		gameOverLayer.add(layerBg);
+		gameOverLayer.add(gameOverText);
+		
+		gameOverLayer.draw();
+		gameOverLayer.hide();
+		
+	  layer.add(orderText);
+	  
+      imageObj.onload = function() {
+		for(var z=0; z<8;z++){	
+			var nav = new Kinetic.Image({
+			  x: spritePos[z]._x,
+			  y: spritePos[z]._y,
+			  width:spritePos[z]._w,
+			  height:spritePos[z]._h,
+			  image: imageObj,
+			  crop: {
+					x: spritePos[z]._cx,
+					y: spritePos[z]._cy,
+					width: spritePos[z]._cw,
+					height: spritePos[z]._ch
+				},
+				id:z,
+				name: 'navi'
+			});
+			
+			
+			layer.add(nav);
+		}
+		
+		var redoBtn = new Kinetic.Image({
+			  x: 20,
+			  y: 540,
+			  width:89,
+			  height:40,
+			  image: imageObj,
+			  crop: {
+					x: 0,
+					y: 270,
+					width: 89,
+					height: 40
+				},
+				name: 'redo'
+		});
+		var okBtn = new Kinetic.Image({
+			  x: 120,
+			  y: 540,
+			  width:89,
+			  height:40,
+			  image: imageObj,
+			  crop: {
+					x: 90,
+					y: 270,
+					width: 89,
+					height: 40
+				},
+				name: 'ok'
+		});
+		layer.add(redoBtn);
+		layer.add(okBtn);
+		
+	
+        // add the shape to the layer        
+		 layer.on('click', function(e) {
+			
+			var targetNav = e.shape;
+			
+			if(targetNav.getName() == 'navi'){
+				//layer2.removeChildren();
+				
+				var tarId = targetNav.getId();
+				//alert(targetNav.getId());
+				selectedIngre.push(tarId);		
+					var ing = new Kinetic.Image({
+					  x: marginLeft,
+					  y: burgerHeight - ingrePos[tarId]._h,
+					  width:366,
+					  height:ingrePos[tarId]._h,
+					  image: imageObj,
+					  crop: {
+							x: ingrePos[tarId]._cx,
+							y: ingrePos[tarId]._cy,
+							width: 366,
+							height: ingrePos[tarId]._ch
+						}
+					});
+					
+					burgerHeight -= ingrePos[tarId]._h;	
+                    totalBurgerHeight += ingrePos[tarId]._h;	
+                   
+                    
+                    if(totalBurgerHeight > 380){
+                        //alert('exceeded frame' + totalBurgerHeight);
+                        
+                        scaleFac = 380 / totalBurgerHeight;
+                        
+                        //newY = 600/2 + (totalBurgerHeight * scaleFac)/2;
+                        
+                    }
+					layer2.setScale(scaleFac,scaleFac);
+                    var newX = 400/2 - (366 * scaleFac)/2 + (55*(1-scaleFac));
+                    var newY = 500/2 + (250*(1-scaleFac));
+                    //- (totalBurgerHeight * scaleFac)/2;
+                    //alert(scaleFac);
+                    //layer2.setPosition(newX, newY);
+					var tl = new TimelineMax({ onUpdate:stage.draw, onUpdateScope:stage,align:'start',smoothChildTiming:true}); 
+					tl.append(TweenMax.to(layer2, 0.1, {setX:newX, setY:newY, ease:Strong.easeOut}));
+					tl.play();
+					
+					layer2.add(ing);
+                   
+					//layer2.draw();
+				}else if(targetNav.getName() == 'redo'){
+                    
+					layer2.removeChildren();
+					selectedIngre = [];
+					burgerHeight = 220;
+                    totalBurgerHeight = 0;
+                    scaleFac = 1;
+					
+				}else{
+					
+					checkOrder();
+				}
+				
+				layer2.draw();
+				
+				
+		  });
+		
+        stage.add(layer);
+		stage.add(layer2);
+		stage.add(orderLayer);
+		stage.add(messageLayer);
+        stage.add(timerLayer);
+		stage.add(gameOverLayer);
+		
+      };
+      imageObj.src = 'images/sprites.jpg';
+    
+      updateTimeSpan();
+	  
+	  createOrder();
+	 
+    </script>
+ 
+  
+</body>
+</html>
